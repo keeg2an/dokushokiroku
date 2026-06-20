@@ -101,14 +101,17 @@ function commitEdit(id) {
     return;
   }
 
+  const progress = Math.min(100, Math.max(0, Number(document.getElementById(`e-progress-${id}`).value) || 0));
+  const status = progress === 100 ? 'done' : document.getElementById(`e-status-${id}`).value;
+
   const idx = books.findIndex(b => b.id === id);
   books[idx] = {
     ...books[idx],
     title: titleEl.value.trim(),
     date: document.getElementById(`e-date-${id}`).value,
     duration: Number(document.getElementById(`e-duration-${id}`).value) || 0,
-    progress: Math.min(100, Math.max(0, Number(document.getElementById(`e-progress-${id}`).value) || 0)),
-    status: document.getElementById(`e-status-${id}`).value,
+    progress,
+    status,
   };
 
   save();
@@ -136,13 +139,14 @@ document.getElementById('register-form').addEventListener('submit', e => {
   const title = document.getElementById('title').value.trim();
   if (!title) return;
 
+  const progress = Math.min(100, Math.max(0, Number(document.getElementById('progress').value) || 0));
   const book = {
     id: Date.now(),
     title,
     date: document.getElementById('date').value,
     duration: Number(document.getElementById('duration').value) || 0,
-    progress: Math.min(100, Math.max(0, Number(document.getElementById('progress').value) || 0)),
-    status: document.getElementById('status').value,
+    progress,
+    status: progress === 100 ? 'done' : document.getElementById('status').value,
   };
 
   books.unshift(book);
