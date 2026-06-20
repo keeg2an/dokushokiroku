@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>読書記録</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>読書記録</h1>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>新規登録</h2>
+      <form id="register-form">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="title">本タイトル</label>
+            <input type="text" id="title" placeholder="例: 坊っちゃん" required>
+          </div>
+          <div class="form-group">
+            <label for="date">日付</label>
+            <input type="date" id="date">
+          </div>
+          <div class="form-group">
+            <label for="duration">所要時間（分）</label>
+            <input type="number" id="duration" min="0" placeholder="60">
+          </div>
+          <div class="form-group">
+            <label for="progress">読了率（%）</label>
+            <input type="number" id="progress" min="0" max="100" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label for="status">ステータス</label>
+            <select id="status">
+              <option value="want">読みたい</option>
+              <option value="reading">読書中</option>
+              <option value="done">読了</option>
+            </select>
+          </div>
+          <div class="form-group form-group--action">
+            <label>&nbsp;</label>
+            <button type="submit" class="btn btn-primary">登録</button>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>読書リスト</h2>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>本タイトル</th>
+              <th>日付</th>
+              <th>所要時間</th>
+              <th>読了率</th>
+              <th>ステータス</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="books-list"></tbody>
+        </table>
+      </div>
+      <p id="empty-state" class="empty-state">まだ本が登録されていません</p>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
