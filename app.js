@@ -1,186 +1,31 @@
-const STORAGE_KEY = 'dokusho_books';
-const MAX_PROGRESS = 100;
+import { BooksStore, clampProgress, resolveStatus } from './store.js';
+import { render, renderEditRow } from './ui.js';
 
-const STATUS_LABELS = { want: '読みたい', reading: '読書中', done: '読了' };
-const STATUS_CLASSES = { want: 'badge-want', reading: 'badge-reading', done: 'badge-done' };
+const tbody = document.getElementById('books-list');
+const emptyState = document.getElementById('empty-state');
+const saveErrorMessage = document.getElementById('save-error');
 
-let books = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+const store = new BooksStore({
+  onSaveError: () => {
+    saveErrorMessage.style.display = 'block';
+  },
+});
 
-function save() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(books));
-}
+store.load();
 
-function formatDuration(totalMinutes) {
-  if (!totalMinutes || totalMinutes <= 0) return '-';
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  if (hours === 0) return `${minutes}分`;
-  if (minutes === 0) return `${hours}時間`;
-  return `${hours}時間${minutes}分`;
-}
-
-function formatDate(dateString) {
-  if (!dateString) return '-';
-  const [year, month, day] = dateString.split('-');
-  return `${year}/${month}/${day}`;
-}
-
-function clampProgress(value) {
-  return Math.min(MAX_PROGRESS, Math.max(0, Number(value) || 0));
-}
-
-function resolveStatus(progress, selectedStatus) {
-  return progress === MAX_PROGRESS ? 'done' : selectedStatus;
-}
-
-function createProgressCell(progress) {
-  const cell = document.createElement('td');
-  const container = document.createElement('div');
-  container.className = 'progress-cell';
-
-  const bar = document.createElement('div');
-  bar.className = 'progress-bar';
-  const fill = document.createElement('div');
-  fill.className = 'progress-fill';
-  fill.style.width = `${progress}%`;
-  bar.appendChild(fill);
-
-  const text = document.createElement('span');
-  text.className = 'progress-text';
-  text.textContent = `${progress}%`;
-
-  container.append(bar, text);
-  cell.appendChild(container);
-  return cell;
-}
-
-function createStatusOption(value, label, selectedValue) {
-  const option = document.createElement('option');
-  option.value = value;
-  option.textContent = label;
-  option.selected = value === selectedValue;
-  return option;
-}
-
-function renderRow(book) {
-  const progress = book.progress ?? 0;
-  const tr = document.createElement('tr');
-  tr.id = `row-${book.id}`;
-
-  const titleCell = document.createElement('td');
-  titleCell.textContent = book.title;
-
-  const dateCell = document.createElement('td');
-  dateCell.textContent = formatDate(book.date);
-
-  const durationCell = document.createElement('td');
-  durationCell.textContent = formatDuration(book.duration);
-
-  const statusCell = document.createElement('td');
-  const badge = document.createElement('span');
-  badge.className = `badge ${STATUS_CLASSES[book.status]}`;
-  badge.textContent = STATUS_LABELS[book.status];
-  statusCell.appendChild(badge);
-
-  const updateButton = document.createElement('button');
-  updateButton.className = 'btn btn-update';
-  updateButton.textContent = '更新';
-  updateButton.addEventListener('click', () => startEdit(book.id));
-
-  const deleteButton = document.createElement('button');
-  deleteButton.className = 'btn btn-delete';
-  deleteButton.textContent = '削除';
-  deleteButton.addEventListener('click', () => deleteBook(book.id));
-
-  const actionWrapper = document.createElement('div');
-  actionWrapper.className = 'action-buttons';
-  actionWrapper.append(updateButton, deleteButton);
-
-  const actionCell = document.createElement('td');
-  actionCell.appendChild(actionWrapper);
-
-  tr.append(titleCell, dateCell, durationCell, createProgressCell(progress), statusCell, actionCell);
-  return tr;
-}
-
-function renderEditRow(book) {
-  const tr = document.createElement('tr');
-  tr.id = `row-${book.id}`;
-  tr.classList.add('editing');
-
-  const titleInput = document.createElement('input');
-  titleInput.type = 'text';
-  titleInput.id = `e-title-${book.id}`;
-  titleInput.value = book.title;
-  titleInput.required = true;
-
-  const dateInput = document.createElement('input');
-  dateInput.type = 'date';
-  dateInput.id = `e-date-${book.id}`;
-  dateInput.value = book.date || '';
-
-  const durationInput = document.createElement('input');
-  durationInput.type = 'number';
-  durationInput.id = `e-duration-${book.id}`;
-  durationInput.value = book.duration || '';
-  durationInput.min = '0';
-  durationInput.placeholder = '分';
-
-  const progressInput = document.createElement('input');
-  progressInput.type = 'number';
-  progressInput.id = `e-progress-${book.id}`;
-  progressInput.value = book.progress ?? 0;
-  progressInput.min = '0';
-  progressInput.max = String(MAX_PROGRESS);
-
-  const statusSelect = document.createElement('select');
-  statusSelect.id = `e-status-${book.id}`;
-  Object.entries(STATUS_LABELS).forEach(([value, label]) => {
-    statusSelect.appendChild(createStatusOption(value, label, book.status));
+function refresh() {
+  render(store.getAll(), tbody, emptyState, {
+    onUpdate: startEdit,
+    onDelete: deleteBook,
   });
-
-  const saveButton = document.createElement('button');
-  saveButton.className = 'btn btn-save';
-  saveButton.textContent = '保存';
-  saveButton.addEventListener('click', () => commitEdit(book.id));
-
-  const cancelButton = document.createElement('button');
-  cancelButton.className = 'btn btn-cancel';
-  cancelButton.textContent = 'キャンセル';
-  cancelButton.addEventListener('click', render);
-
-  const actionWrapper = document.createElement('div');
-  actionWrapper.className = 'action-buttons';
-  actionWrapper.append(saveButton, cancelButton);
-
-  const cells = [titleInput, dateInput, durationInput, progressInput, statusSelect, actionWrapper].map(element => {
-    const cell = document.createElement('td');
-    cell.appendChild(element);
-    return cell;
-  });
-
-  tr.append(...cells);
-  return tr;
-}
-
-function render() {
-  const tbody = document.getElementById('books-list');
-  const emptyState = document.getElementById('empty-state');
-  tbody.innerHTML = '';
-
-  if (books.length === 0) {
-    emptyState.style.display = 'block';
-    return;
-  }
-
-  emptyState.style.display = 'none';
-  books.forEach(book => tbody.appendChild(renderRow(book)));
 }
 
 function startEdit(id) {
-  const book = books.find(book => book.id === id);
+  const book = store.getAll().find(book => book.id === id);
   if (!book) return;
-  document.getElementById(`row-${id}`).replaceWith(renderEditRow(book));
+  document.getElementById(`row-${id}`).replaceWith(
+    renderEditRow(book, { onSave: commitEdit, onCancel: refresh })
+  );
 }
 
 function commitEdit(id) {
@@ -191,27 +36,21 @@ function commitEdit(id) {
   }
 
   const progress = clampProgress(document.getElementById(`e-progress-${id}`).value);
-  const status = resolveStatus(progress, document.getElementById(`e-status-${id}`).value);
-
-  const idx = books.findIndex(book => book.id === id);
-  books[idx] = {
-    ...books[idx],
+  store.update(id, {
     title: titleInput.value.trim(),
     date: document.getElementById(`e-date-${id}`).value,
     duration: Number(document.getElementById(`e-duration-${id}`).value) || 0,
     progress,
-    status,
-  };
+    status: resolveStatus(progress, document.getElementById(`e-status-${id}`).value),
+  });
 
-  save();
-  render();
+  refresh();
 }
 
 function deleteBook(id) {
   if (!confirm('この記録を削除しますか？')) return;
-  books = books.filter(book => book.id !== id);
-  save();
-  render();
+  store.remove(id);
+  refresh();
 }
 
 function todayString() {
@@ -225,22 +64,19 @@ document.getElementById('register-form').addEventListener('submit', event => {
   if (!title) return;
 
   const progress = clampProgress(document.getElementById('progress').value);
-  const book = {
+  store.add({
     id: Date.now(),
     title,
     date: document.getElementById('date').value,
     duration: Number(document.getElementById('duration').value) || 0,
     progress,
     status: resolveStatus(progress, document.getElementById('status').value),
-  };
-
-  books.unshift(book);
-  save();
-  render();
+  });
 
   event.target.reset();
   document.getElementById('date').value = todayString();
+  refresh();
 });
 
 document.getElementById('date').value = todayString();
-render();
+refresh();

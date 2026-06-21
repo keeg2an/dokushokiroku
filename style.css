@@ -259,6 +259,17 @@ tbody tr.editing td select {
   gap: 6px;
 }
 
+/* --- Error Banner --- */
+.error-banner {
+  background: #fdf0ef;
+  color: #c0392b;
+  border: 1px solid #f0c0bb;
+  border-radius: 8px;
+  padding: 12px 20px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
 /* --- Empty State --- */
 .empty-state {
   text-align: center;

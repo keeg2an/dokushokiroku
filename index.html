@@ -12,6 +12,10 @@
   </header>
 
   <main>
+    <div id="save-error" class="error-banner" role="alert" style="display:none">
+      データの保存に失敗しました（ストレージ容量不足）
+    </div>
+
     <section class="card">
       <h2>新規登録</h2>
       <form id="register-form">
@@ -50,7 +54,7 @@
     <section class="card">
       <h2>読書リスト</h2>
       <div class="table-wrapper">
-        <table>
+        <table aria-label="読書記録一覧">
           <thead>
             <tr>
               <th>本タイトル</th>
@@ -68,6 +72,6 @@
     </section>
   </main>
 
-  <script src="app.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>
